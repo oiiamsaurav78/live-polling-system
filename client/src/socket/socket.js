@@ -1,9 +1,10 @@
 import { io } from "socket.io-client";
 
-const SOCKET_URL = "http://localhost:5000";
+const BACKEND_URL = "https://live-polling-0eai.onrender.com";
 
-const socket = io(SOCKET_URL, {
-  autoConnect: false
+const socket = io(BACKEND_URL, {
+  transports: ["websocket"],
+  autoConnect: true
 });
 
 export default socket;
