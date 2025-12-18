@@ -2,3 +2,52 @@
   padding: 40px;
   text-align: center;
 }
+
+.student-header {
+  width: 100%;
+  padding: 14px 20px;
+  background: #ffffff;
+  border-bottom: 1px solid #e5e7eb;
+  display: flex;
+  justify-content: center;
+  position: sticky;
+  top: 0;
+  z-index: 20;
+}
+
+.kicked-container {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f9fafb;
+  font-family: "Sora", sans-serif;
+}
+
+.kicked-card {
+  background: #ffffff;
+  padding: 32px 36px;
+  border-radius: 16px;
+  text-align: center;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+}
+
+.kicked-card h2 {
+  font-size: 20px;
+  font-weight: 600;
+  margin-bottom: 8px;
+  color: #111827;
+}
+
+.kicked-card p {
+  font-size: 14px;
+  color: #6b7280;
+}
+
+
+.student-name {
+  font-family: "Sora", sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  color: #374151;
+}

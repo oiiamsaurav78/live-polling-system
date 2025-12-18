@@ -17,6 +17,9 @@ export const PollProvider = ({ children }) => {
   const [results, setResults] = useState(null);
   const [pollHistory, setPollHistory] = useState([]);
 
+  /* ---------- LIVE COUNTS ---------- */
+  const [liveCounts, setLiveCounts] = useState({});
+
   /* ---------- REALTIME ---------- */
   const [students, setStudents] = useState([]);
   const [messages, setMessages] = useState([]);
@@ -24,24 +27,36 @@ export const PollProvider = ({ children }) => {
 
   /* ---------- ACTIONS ---------- */
   const askAnotherQuestion = () => {
+    console.log("🟣 Ask another question clicked");
     setPollState(null);
     setResults(null);
-    // pollHistory intentionally NOT cleared
-    // socket.emit("teacher_ready_for_new_poll"); // optional later
+    setLiveCounts({});
   };
 
   useEffect(() => {
-    /* ===== POLL ===== */
+    /* ===== SOCKET CONNECTION ===== */
+    console.log("🟢 PollContext mounted");
 
-    socket.on("poll_started", (data) => {
-      setPollState(data);
-      setResults(null);
+    socket.on("connect", () => {
+      console.log("🟢 Socket connected:", socket.id);
     });
 
-    socket.on("poll_update", (answers) => {
-      setPollState((prev) =>
-        prev ? { ...prev, answers } : prev
-      );
+    socket.on("disconnect", () => {
+      console.log("🔴 Socket disconnected");
+    });
+
+    /* ===== POLL EVENTS ===== */
+
+    socket.on("poll_started", (data) => {
+      console.log("🟡 poll_started:", data);
+      setPollState(data);
+      setResults(null);
+      setLiveCounts({});
+    });
+
+    socket.on("poll_update", (counts) => {
+      console.log("🟢 poll_update received:", counts);
+      setLiveCounts({ ...counts }); // force new reference
     });
 
     socket.on("poll_ended", ({ results, correctOption }) => {
@@ -50,44 +65,59 @@ export const PollProvider = ({ children }) => {
       setPollState((prev) => {
         if (!prev) return prev;
 
-        // save to history
+        // ✅ SAVE FULL POLL DATA
         setPollHistory((h) => [
           ...h,
-          { question: prev.question }
+          {
+            question: prev.question,
+            options: prev.options,
+            results,
+            correctOption
+          }
         ]);
 
         return { ...prev, correctOption };
       });
     });
 
-    /* ===== STUDENT ===== */
+
+    /* ===== STUDENT EVENTS ===== */
 
     socket.on("joined_success", ({ studentId, pollState }) => {
+      console.log("🟠 joined_success:", studentId);
       setStudentId(studentId);
       setPollState(pollState);
       setKicked(false);
     });
 
     socket.on("kicked", () => {
+      console.log("❌ kicked");
       setKicked(true);
     });
 
     socket.on("student_list", (list) => {
+      console.log("👥 student_list:", list);
       setStudents(list);
     });
 
     /* ===== CHAT ===== */
 
     socket.on("chat_update", (msgs) => {
+      console.log("💬 chat_update:", msgs);
       setMessages(msgs);
     });
 
     socket.on("student_questions_update", (questions) => {
+      console.log("❓ student_questions_update:", questions);
       setStudentQuestions(questions);
     });
 
     /* ===== CLEANUP ===== */
     return () => {
+      console.log("🧹 Cleaning up socket listeners");
+
+      socket.off("connect");
+      socket.off("disconnect");
       socket.off("poll_started");
       socket.off("poll_update");
       socket.off("poll_ended");
@@ -102,28 +132,24 @@ export const PollProvider = ({ children }) => {
   return (
     <PollContext.Provider
       value={{
-        /* role */
         role,
         setRole,
 
-        /* student */
         studentName,
         setStudentName,
         studentId,
         kicked,
 
-        /* poll */
         pollState,
         results,
         pollHistory,
+        liveCounts,
         askAnotherQuestion,
 
-        /* realtime */
         students,
         messages,
         studentQuestions,
 
-        /* socket */
         socket
       }}
     >

@@ -1,56 +1,119 @@
 @import url("https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600&display=swap");
 
+/* Center everything */
 .live-results-wrapper {
-  margin-top: 40px;
+  min-height: 60vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
   font-family: "Sora", sans-serif;
 }
 
+/* Title */
 .live-results-title {
-  font-size: 18px;
+  font-size: 22px;
   font-weight: 600;
-  margin-bottom: 16px;
+  margin-bottom: 24px;
+  text-align: center;
+  letter-spacing: 0.3px;
 }
 
+/* Main card */
 .live-results-card {
+  width: 100%;
   max-width: 520px;
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 22px 24px;
+  box-shadow: 0 20px 35px rgba(0, 0, 0, 0.08);
+  animation: fadeUp 0.4s ease;
 }
 
+/* Option row */
 .live-result-row {
-  margin-bottom: 18px;
+  margin-bottom: 22px;
 }
 
+/* Option text + percentage */
 .live-result-header {
   display: flex;
   justify-content: space-between;
-  margin-bottom: 6px;
+  align-items: center;
+  margin-bottom: 8px;
 }
 
 .live-option-text {
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 500;
+  color: #111827;
 }
 
 .live-percent {
-  font-size: 12px;
+  font-size: 13px;
+  font-weight: 500;
   color: #6b7280;
 }
 
+/* Progress bar */
 .live-bar {
-  height: 10px;
+  height: 12px;
   background: #e5e7eb;
-  border-radius: 6px;
+  border-radius: 999px;
   overflow: hidden;
+  position: relative;
 }
 
+/* Animated fill */
 .live-bar-fill {
   height: 100%;
-  background: #6f6ce8;
-  transition: width 0.4s ease;
+  background: linear-gradient(
+    90deg,
+    #6f6ce8,
+    #8b88ff
+  );
+  border-radius: 999px;
+  transition: width 0.45s ease-in-out;
 }
 
+/* Vote count */
 .live-votes {
   font-size: 12px;
   color: #6b7280;
-  margin-top: 4px;
-  display: inline-block;
+  margin-top: 6px;
+  display: block;
+  text-align: right;
+}
+
+/* Ask another button */
+.ask-another-btn {
+  margin-top: 28px;
+  padding: 10px 18px;
+  font-family: "Sora", sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  background: #6f6ce8;
+  color: white;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  box-shadow: 0 10px 20px rgba(111, 108, 232, 0.3);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.ask-another-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 14px 24px rgba(111, 108, 232, 0.4);
+}
+
+/* Entry animation */
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { usePoll } from "../context/PollContext";
 
 import CreatePoll from "../components/teacher/CreatePoll";
@@ -11,11 +11,16 @@ import badge from "../assets/image.png";
 import "../styles/teacher.css";
 
 const TeacherPage = () => {
-  const { pollState } = usePoll();
+  const { pollState, socket } = usePoll();
 
   const [showPollHistory, setShowPollHistory] = useState(false);
   const [showParticipants, setShowParticipants] = useState(false);
   const [showChat, setShowChat] = useState(false);
+
+  // 🔥 CRITICAL: Register teacher with backend
+  useEffect(() => {
+    socket.emit("join_teacher");
+  }, [socket]);
 
   return (
     <div className="teacher-container">

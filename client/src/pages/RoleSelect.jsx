@@ -9,7 +9,9 @@ const RoleSelect = () => {
 
   const handleContinue = () => {
     setRole(selected);
-    socket.connect();
+
+    // ✅ DO NOT manually connect socket
+    // socket.connect(); ❌ REMOVED
 
     if (selected === "teacher") {
       socket.emit("join_teacher");
@@ -19,8 +21,13 @@ const RoleSelect = () => {
   return (
     <div className="role-container">
       <img src={badge} alt="Intervue Poll" className="poll-badge" />
-      <h1>Welcome to the <span id='live-polling'>Live Polling System</span></h1>
-      <p>Please select the role that best describes you to begin using the live polling system</p>
+      <h1>
+        Welcome to the <span id="live-polling">Live Polling System</span>
+      </h1>
+      <p>
+        Please select the role that best describes you to begin using the live
+        polling system
+      </p>
 
       <div className="role-cards">
         <div
@@ -36,7 +43,7 @@ const RoleSelect = () => {
           onClick={() => setSelected("teacher")}
         >
           <h3>I’m a Teacher</h3>
-          <p>Submit answers and view live poll results in real-time.s</p>
+          <p>Submit answers and view live poll results in real-time</p>
         </div>
       </div>
 

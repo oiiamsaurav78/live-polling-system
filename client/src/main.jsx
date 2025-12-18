@@ -5,9 +5,9 @@ import { PollProvider } from "./context/PollContext";
 import "./styles/common.css";
 
 ReactDOM.createRoot(document.getElementById("root")).render(
-  <React.StrictMode>
+  
     <PollProvider>
       <App />
     </PollProvider>
-  </React.StrictMode>
+ 
 );

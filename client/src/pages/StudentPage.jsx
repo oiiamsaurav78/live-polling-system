@@ -5,25 +5,50 @@ import StudentJoin from "../components/student/StudentJoin";
 import StudentPoll from "../components/student/StudentPoll";
 import StudentResult from "../components/student/StudentResult";
 import StudentChat from "../components/student/StudentChat";
+import StudentWaiting from "../components/student/StudentWaiting";
+import '../styles/student.css'
 
 const StudentPage = () => {
   const { studentName, pollState, results, kicked } = usePoll();
   const [showChat, setShowChat] = useState(false);
 
   if (kicked) {
-    return <h2>You’ve been kicked out</h2>;
+    return (
+      <div className="kicked-container">
+        <div className="kicked-card">
+          <h2>🚫 You’ve been kicked out</h2>
+          <p>Please contact the teacher if this was a mistake.</p>
+        </div>
+      </div>
+    );
   }
 
-  // 1️⃣ Student not joined yet
-  if (!studentName) return <StudentJoin />;
+
+  if (!studentName) {
+    return <StudentJoin />;
+  }
+
+  let mainContent = null;
+
+  if (results !== null) {
+    mainContent = <StudentResult />;
+  } else if (pollState && pollState.isActive && pollState.question) {
+    mainContent = <StudentPoll />;
+  } else {
+    mainContent = <StudentWaiting />;
+  }
 
   return (
     <>
-      {/* Poll / Result */}
-      {!results && <StudentPoll />}
-      {results && <StudentResult />}
+      {/* 🔵 Student Header */}
+      <div className="student-header">
+        <span className="student-name">
+          👤 {studentName}
+        </span>
+      </div>
 
-      {/* Floating chat button */}
+      {mainContent}
+
       <button
         className="chat-fab"
         onClick={() => setShowChat((prev) => !prev)}
@@ -31,7 +56,6 @@ const StudentPage = () => {
         💬
       </button>
 
-      {/* Chat panel */}
       {showChat && <StudentChat />}
     </>
   );
