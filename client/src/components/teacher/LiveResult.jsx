@@ -4,12 +4,13 @@ import "../../styles/LiveResult.css";
 const LiveResults = () => {
   const { pollState, results, liveCounts, askAnotherQuestion } = usePoll();
 
-  // No poll at all
+  // ❌ No poll loaded
   if (!pollState || !pollState.options) return null;
 
+  // ✅ Poll ended when results array is present
   const isPollEnded = Array.isArray(results);
 
-  // Use liveCounts during active poll, results after poll ends
+  // ✅ Use liveCounts during active poll, final results after poll ends
   const counts = isPollEnded
     ? results
     : Array.isArray(liveCounts)
@@ -20,10 +21,20 @@ const LiveResults = () => {
 
   return (
     <div className="live-results-wrapper">
+
+      {/* Title */}
       <h3 className="live-results-title">
         {isPollEnded ? "Final Results" : "Live Results"}
       </h3>
 
+      {/* ✅ Question (THIS WAS MISSING BEFORE) */}
+      {pollState?.question && (
+        <h2 className="live-question">
+          {pollState.question}
+        </h2>
+      )}
+
+      {/* Results Card */}
       <div className="live-results-card">
         {pollState.options.map((opt, index) => {
           const count = counts[index] ?? 0;
@@ -33,6 +44,7 @@ const LiveResults = () => {
 
           return (
             <div key={index} className="live-result-row">
+
               <div className="live-result-header">
                 <span className="live-option-text">
                   {typeof opt === "string" ? opt : opt.text}
@@ -52,11 +64,13 @@ const LiveResults = () => {
               <span className="live-votes">
                 {count} vote{count !== 1 ? "s" : ""}
               </span>
+
             </div>
           );
         })}
       </div>
 
+      {/* Ask Another Question Button (Teacher only flow) */}
       {isPollEnded && (
         <button
           className="ask-another-btn"
@@ -65,6 +79,7 @@ const LiveResults = () => {
           Ask Another Question
         </button>
       )}
+
     </div>
   );
 };
