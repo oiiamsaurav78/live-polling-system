@@ -1,142 +1,143 @@
-import { v4 as uuidv4 } from "uuid";
-import { pollState, students, pollHistory } from "../data/pollStore.js";
-import { startPollTimer, clearPollTimer } from "../utils/timer.js";
+import { createContext, useContext, useEffect, useState } from "react";
+import socket from "../socket/socket";
 
-/* ---------- IN-MEMORY STORES ---------- */
-const studentQuestions = [];
-const chatMessages = [];
+const PollContext = createContext();
 
-const registerPollSocket = (io) => {
+export const PollProvider = ({ children }) => {
+  /* ---------- ROLE ---------- */
+  const [role, setRole] = useState(null);
 
-  const emitStudentList = () => {
-    const list = Object.entries(students).map(([socketId, s]) => ({
-      socketId,
-      name: s.name
-    }));
-    io.emit("student_list", list);
+  /* ---------- STUDENT ---------- */
+  const [studentName, setStudentName] = useState("");
+  const [studentId, setStudentId] = useState(null);
+  const [kicked, setKicked] = useState(false);
+
+  /* ---------- POLL ---------- */
+  const [pollState, setPollState] = useState(null);
+  const [results, setResults] = useState(null);
+  const [pollHistory, setPollHistory] = useState([]);
+
+  /* ---------- LIVE COUNTS ---------- */
+  const [liveCounts, setLiveCounts] = useState({});
+
+  /* ---------- REALTIME ---------- */
+  const [students, setStudents] = useState([]);
+  const [messages, setMessages] = useState([]);
+  const [studentQuestions, setStudentQuestions] = useState([]);
+
+  /* ---------- ACTIONS ---------- */
+  const askAnotherQuestion = () => {
+    setPollState(null);
+    setResults(null);
+    setLiveCounts({});
   };
 
-  const endPoll = () => {
-    pollState.isActive = false;
+  useEffect(() => {
+    /* ===== POLL ===== */
 
-    const results = pollState.options.map((_, index) =>
-      Object.values(pollState.answers).filter(a => a === index).length
-    );
-
-    pollHistory.push({
-      question: pollState.question,
-      options: pollState.options,
-      results,
-      correctOption: pollState.correctOption,
-      timestamp: new Date()
+    socket.on("poll_started", (data) => {
+      setPollState(data);
+      setResults(null);
+      setLiveCounts({});
     });
 
-    io.emit("poll_ended", {
-      results,
-      correctOption: pollState.correctOption
+    socket.on("poll_update", (counts) => {
+      setLiveCounts({ ...counts });
     });
 
-    pollState.question = null;
-    pollState.options = [];
-    pollState.answers = {};
-    pollState.startTime = null;
+    // 🔥 FIXED: STORE FULL POLL DATA IN HISTORY
+    socket.on("poll_ended", ({ results, correctOption }) => {
+      setResults(results);
 
-    clearPollTimer();
-  };
+      setPollState((prev) => {
+        if (!prev) return prev;
 
-  io.on("connection", (socket) => {
-    console.log("🟢 Connected:", socket.id);
+        setPollHistory((h) => {
+          // ❌ prevent duplicate question
+          if (h.some(p => p.question === prev.question)) return h;
 
-    /* ---------- TEACHER ---------- */
-    socket.on("join_teacher", () => {
-      socket.emit("current_state", pollState);
-      socket.emit("chat_update", chatMessages);
-      socket.emit("student_questions_update", studentQuestions);
-      emitStudentList();
-    });
+          return [
+            ...h,
+            {
+              question: prev.question,
+              options: prev.options,
+              results,
+              correctOption
+            }
+          ];
+        });
 
-    socket.on("create_poll", ({ question, options, duration, correctOption }) => {
-      if (pollState.isActive) return;
-
-      pollState.isActive = true;
-      pollState.question = question;
-      pollState.options = options;
-      pollState.correctOption = correctOption;
-      pollState.answers = {};
-      pollState.startTime = Date.now();
-      pollState.duration = duration || 60;
-
-      Object.values(students).forEach(s => (s.hasAnswered = false));
-
-      io.emit("poll_started", pollState);
-      startPollTimer(pollState.duration, endPoll);
-    });
-
-    socket.on("kick_student", (studentSocketId) => {
-      if (students[studentSocketId]) {
-        io.to(studentSocketId).emit("kicked");
-        delete students[studentSocketId];
-        emitStudentList();
-      }
-    });
-
-    /* ---------- STUDENT ---------- */
-    socket.on("join_student", ({ name }) => {
-      const studentId = uuidv4();
-
-      students[socket.id] = {
-        studentId,
-        name,
-        hasAnswered: false
-      };
-
-      socket.emit("joined_success", {
-        studentId,
-        pollState
+        return { ...prev, correctOption };
       });
-
-      socket.emit("chat_update", chatMessages);
-      emitStudentList();
     });
 
-    socket.on("submit_answer", ({ studentId, optionIndex }) => {
-      if (!pollState.isActive) return;
 
-      const student = students[socket.id];
-      if (!student || student.hasAnswered) return;
+    /* ===== STUDENT ===== */
 
-      pollState.answers[studentId] = optionIndex;
-      student.hasAnswered = true;
-
-      io.emit("poll_update", pollState.answers);
-
-      if (Object.keys(pollState.answers).length === Object.keys(students).length) {
-        endPoll();
-      }
+    socket.on("joined_success", ({ studentId, pollState }) => {
+      setStudentId(studentId);
+      setPollState(pollState);
+      setKicked(false);
     });
 
-    /* ---------- STUDENT QUESTIONS ---------- */
-    socket.on("student_question", ({ name, question }) => {
-      studentQuestions.push({ name, question, time: new Date() });
-      io.emit("student_questions_update", studentQuestions);
+    socket.on("kicked", () => {
+      setKicked(true);
     });
 
-    /* ---------- CHAT (SINGLE SOURCE OF TRUTH) ---------- */
-    socket.on("chat_message", ({ sender, message }) => {
-      console.log("💬 CHAT:", sender, message);
-
-      const msg = { sender, message, time: new Date() };
-      chatMessages.push(msg);
-
-      io.emit("chat_update", chatMessages);
+    socket.on("student_list", (list) => {
+      setStudents(list);
     });
 
-    socket.on("disconnect", () => {
-      delete students[socket.id];
-      emitStudentList();
-      console.log("🔴 Disconnected:", socket.id);
+    /* ===== CHAT ===== */
+
+    socket.on("chat_update", (msgs) => {
+      setMessages(msgs);
     });
-  });
+
+    socket.on("student_questions_update", (questions) => {
+      setStudentQuestions(questions);
+    });
+
+    /* ===== CLEANUP ===== */
+    return () => {
+      socket.off("poll_started");
+      socket.off("poll_update");
+      socket.off("poll_ended");
+      socket.off("joined_success");
+      socket.off("kicked");
+      socket.off("student_list");
+      socket.off("chat_update");
+      socket.off("student_questions_update");
+    };
+  }, []);
+
+  return (
+    <PollContext.Provider
+      value={{
+        role,
+        setRole,
+
+        studentName,
+        setStudentName,
+        studentId,
+        kicked,
+
+        pollState,
+        results,
+        pollHistory,
+        liveCounts,
+        askAnotherQuestion,
+
+        students,
+        messages,
+        studentQuestions,
+
+        socket
+      }}
+    >
+      {children}
+    </PollContext.Provider>
+  );
 };
 
-export default registerPollSocket;
+export const usePoll = () => useContext(PollContext);
