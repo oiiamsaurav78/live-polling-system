@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { usePoll } from "../../context/PollContext";
-import "../../styles/studentChat.css";
+import "../../styles/StudentChat.css";
 
 const StudentChat = () => {
   const { socket, studentName, messages } = usePoll();
