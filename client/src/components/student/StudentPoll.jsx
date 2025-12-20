@@ -8,6 +8,7 @@ const StudentPoll = () => {
   const [selected, setSelected] = useState(null);
   const [submitted, setSubmitted] = useState(false);
 
+  // ❌ No active poll
   if (!pollState || !pollState.isActive) return null;
 
   const results = pollState.results || {};
@@ -30,6 +31,7 @@ const StudentPoll = () => {
   return (
     <div className="student-poll-wrapper">
       <div className="poll-card">
+
         {/* Header */}
         <div className="poll-header">
           <span>Question 1</span>
@@ -44,13 +46,16 @@ const StudentPoll = () => {
           {pollState.question}
         </div>
 
-        {/* OPTIONS + LIVE BARS */}
+        {/* Options */}
         <div className="poll-options">
           {pollState.options.map((opt, index) => {
             const count = results[index] || 0;
-            const percent = totalVotes
-              ? Math.round((count / totalVotes) * 100)
-              : 0;
+
+            // ✅ NO 0% PLACEHOLDER
+            const percent =
+              totalVotes > 0
+                ? Math.round((count / totalVotes) * 100)
+                : null;
 
             return (
               <div
@@ -62,22 +67,30 @@ const StudentPoll = () => {
               >
                 <div className="option-top">
                   <span>{opt.text}</span>
-                  <span className="vote-count">
-                    {percent}%
-                  </span>
+
+                  {/* ✅ Show % only if votes exist */}
+                  {percent !== null && (
+                    <span className="vote-count">
+                      {percent}%
+                    </span>
+                  )}
                 </div>
 
                 <div className="option-bar">
-                  <div
-                    className="option-fill"
-                    style={{ width: `${percent}%` }}
-                  ></div>
+                  {/* ✅ Show bar only if votes exist */}
+                  {percent !== null && (
+                    <div
+                      className="option-fill"
+                      style={{ width: `${percent}%` }}
+                    ></div>
+                  )}
                 </div>
               </div>
             );
           })}
         </div>
 
+        {/* Submit / Waiting */}
         {!submitted ? (
           <button
             className="submit-btn"
@@ -91,6 +104,7 @@ const StudentPoll = () => {
             Answer submitted. Waiting for others…
           </p>
         )}
+
       </div>
     </div>
   );
