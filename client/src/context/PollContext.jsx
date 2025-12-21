@@ -17,6 +17,9 @@ export const PollProvider = ({ children }) => {
   const [results, setResults] = useState(null);
   const [pollHistory, setPollHistory] = useState([]);
 
+  /* ---------- NEW: FINAL VOTE DETAILS ---------- */
+  const [finalVoteDetails, setFinalVoteDetails] = useState(null);
+
   /* ---------- LIVE COUNTS ---------- */
   const [liveCounts, setLiveCounts] = useState({});
 
@@ -31,12 +34,10 @@ export const PollProvider = ({ children }) => {
     setPollState(null);
     setResults(null);
     setLiveCounts({});
+    setFinalVoteDetails(null); // ✅ NEW RESET
   };
 
   useEffect(() => {
-    /* ===== SOCKET CONNECTION ===== */
-    console.log("🟢 PollContext mounted");
-
     socket.on("connect", () => {
       console.log("🟢 Socket connected:", socket.id);
     });
@@ -45,34 +46,34 @@ export const PollProvider = ({ children }) => {
       console.log("🔴 Socket disconnected");
     });
 
-    /* ===== POLL EVENTS ===== */
+    /* ---------- POLL ---------- */
 
     socket.on("poll_started", (data) => {
-      console.log("🟡 poll_started:", data);
       setPollState(data);
       setResults(null);
       setLiveCounts({});
+      setFinalVoteDetails(null);
     });
 
     socket.on("poll_update", (counts) => {
-      console.log("🟢 poll_update received:", counts);
-      setLiveCounts({ ...counts }); // force new reference
+      setLiveCounts({ ...counts });
     });
 
-    socket.on("poll_ended", ({ results, correctOption }) => {
+    socket.on("poll_ended", ({ results, correctOption, answerDetails }) => {
       setResults(results);
+      setFinalVoteDetails(answerDetails); // ✅ NEW
 
       setPollState((prev) => {
         if (!prev) return prev;
 
-        // ✅ SAVE FULL POLL DATA
         setPollHistory((h) => [
           ...h,
           {
             question: prev.question,
             options: prev.options,
             results,
-            correctOption
+            correctOption,
+            answerDetails
           }
         ]);
 
@@ -80,42 +81,33 @@ export const PollProvider = ({ children }) => {
       });
     });
 
-
-    /* ===== STUDENT EVENTS ===== */
+    /* ---------- STUDENT ---------- */
 
     socket.on("joined_success", ({ studentId, pollState }) => {
-      console.log("🟠 joined_success:", studentId);
       setStudentId(studentId);
       setPollState(pollState);
       setKicked(false);
     });
 
     socket.on("kicked", () => {
-      console.log("❌ kicked");
       setKicked(true);
     });
 
     socket.on("student_list", (list) => {
-      console.log("👥 student_list:", list);
       setStudents(list);
     });
 
-    /* ===== CHAT ===== */
+    /* ---------- CHAT ---------- */
 
     socket.on("chat_update", (msgs) => {
-      console.log("💬 chat_update:", msgs);
       setMessages(msgs);
     });
 
     socket.on("student_questions_update", (questions) => {
-      console.log("❓ student_questions_update:", questions);
       setStudentQuestions(questions);
     });
 
-    /* ===== CLEANUP ===== */
     return () => {
-      console.log("🧹 Cleaning up socket listeners");
-
       socket.off("connect");
       socket.off("disconnect");
       socket.off("poll_started");
@@ -144,6 +136,7 @@ export const PollProvider = ({ children }) => {
         results,
         pollHistory,
         liveCounts,
+        finalVoteDetails, // ✅ EXPOSED
         askAnotherQuestion,
 
         students,
@@ -159,3 +152,14 @@ export const PollProvider = ({ children }) => {
 };
 
 export const usePoll = () => useContext(PollContext);
+
+
+
+
+
+
+
+
+
+
+
