@@ -135,7 +135,7 @@ Copy code
 
 ---
 
-## ✅ STEP 2: Add screenshots folder
+
 
 In VS Code:
 
@@ -150,8 +150,7 @@ live-polling/
 │ └── student-result.png
 └── README.md
 
-yaml
-Copy code
+
 
 
 
