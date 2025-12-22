@@ -12,13 +12,21 @@ const StudentPoll = () => {
   if (!pollState || !pollState.isActive) return null;
 
   const results = pollState.results || {};
-  const totalVotes = Object.values(results).reduce(
-    (a, b) => a + b,
-    0
-  );
+  const totalVotes = Object.values(results).reduce((a, b) => a + b, 0);
 
   const submitAnswer = () => {
     if (selected === null || submitted) return;
+
+    // 🔥 CRITICAL GUARD
+    if (!studentId) {
+      console.error("❌ studentId is missing while submitting answer");
+      return;
+    }
+
+    console.log("🟢 submitting answer:", {
+      studentId,
+      optionIndex: selected
+    });
 
     socket.emit("submit_answer", {
       studentId,
@@ -51,7 +59,6 @@ const StudentPoll = () => {
           {pollState.options.map((opt, index) => {
             const count = results[index] || 0;
 
-            // ✅ NO 0% PLACEHOLDER
             const percent =
               totalVotes > 0
                 ? Math.round((count / totalVotes) * 100)
@@ -68,7 +75,6 @@ const StudentPoll = () => {
                 <div className="option-top">
                   <span>{opt.text}</span>
 
-                  {/* ✅ Show % only if votes exist */}
                   {percent !== null && (
                     <span className="vote-count">
                       {percent}%
@@ -77,12 +83,11 @@ const StudentPoll = () => {
                 </div>
 
                 <div className="option-bar">
-                  {/* ✅ Show bar only if votes exist */}
                   {percent !== null && (
                     <div
                       className="option-fill"
                       style={{ width: `${percent}%` }}
-                    ></div>
+                    />
                   )}
                 </div>
               </div>

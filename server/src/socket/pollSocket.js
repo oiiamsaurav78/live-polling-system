@@ -1,3 +1,5 @@
+
+
 import { v4 as uuidv4 } from "uuid";
 import { pollState, students, pollHistory } from "../data/pollStore.js";
 import { startPollTimer, clearPollTimer } from "../utils/timer.js";
@@ -18,21 +20,38 @@ const registerPollSocket = (io) => {
   const endPoll = () => {
     pollState.isActive = false;
 
+    // ✅ COUNT RESULTS (UPDATED TO NEW STRUCTURE)
     const results = pollState.options.map((_, index) =>
-      Object.values(pollState.answers).filter(a => a === index).length
+      Object.values(pollState.answers).filter(
+        a => a.optionIndex === index
+      ).length
     );
+
+    // ✅ NEW: BUILD ANSWER DETAILS (WHO VOTED WHAT)
+    const answerDetails = pollState.options.map((_, optionIndex) => {
+      const studentsForOption = Object.values(pollState.answers)
+        .filter(a => a.optionIndex === optionIndex)
+        .map(a => a.name);
+
+      return {
+        optionIndex,
+        students: studentsForOption
+      };
+    });
 
     pollHistory.push({
       question: pollState.question,
       options: pollState.options,
       results,
       correctOption: pollState.correctOption,
+      answerDetails,
       timestamp: new Date()
     });
 
     io.emit("poll_ended", {
       results,
-      correctOption: pollState.correctOption
+      correctOption: pollState.correctOption,
+      answerDetails // ✅ NEW
     });
 
     pollState.question = null;
@@ -59,7 +78,12 @@ const registerPollSocket = (io) => {
 
       pollState.isActive = true;
       pollState.question = question;
-      pollState.options = options;
+
+      pollState.options = options.map((opt, index) => ({
+        text: typeof opt === "string" ? opt : opt.text,
+        isCorrect: index === correctOption
+      }));
+
       pollState.correctOption = correctOption;
       pollState.answers = {};
       pollState.startTime = Date.now();
@@ -70,6 +94,7 @@ const registerPollSocket = (io) => {
       io.emit("poll_started", pollState);
       startPollTimer(pollState.duration, endPoll);
     });
+
 
     socket.on("kick_student", (studentSocketId) => {
       if (students[studentSocketId]) {
@@ -104,11 +129,19 @@ const registerPollSocket = (io) => {
       const student = students[socket.id];
       if (!student || student.hasAnswered) return;
 
-      pollState.answers[studentId] = optionIndex;
+      // ✅ UPDATED: STORE NAME + OPTION
+      pollState.answers[studentId] = {
+        optionIndex,
+        name: student.name
+      };
+
       student.hasAnswered = true;
 
+      // ✅ UPDATED COUNT LOGIC
       const counts = pollState.options.map((_, index) =>
-        Object.values(pollState.answers).filter(a => a === index).length
+        Object.values(pollState.answers).filter(
+          a => a.optionIndex === index
+        ).length
       );
 
       io.emit("poll_update", counts);
@@ -119,20 +152,16 @@ const registerPollSocket = (io) => {
       }
     });
 
-
     /* ---------- STUDENT QUESTIONS ---------- */
     socket.on("student_question", ({ name, question }) => {
       studentQuestions.push({ name, question, time: new Date() });
       io.emit("student_questions_update", studentQuestions);
     });
 
-    /* ---------- CHAT (SINGLE SOURCE OF TRUTH) ---------- */
+    /* ---------- CHAT ---------- */
     socket.on("chat_message", ({ sender, message }) => {
-      console.log("💬 CHAT:", sender, message);
-
       const msg = { sender, message, time: new Date() };
       chatMessages.push(msg);
-
       io.emit("chat_update", chatMessages);
     });
 

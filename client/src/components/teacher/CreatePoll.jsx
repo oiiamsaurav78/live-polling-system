@@ -8,7 +8,7 @@ const CreatePoll = () => {
   const [question, setQuestion] = useState("");
   const [duration, setDuration] = useState(60);
 
-  // ✅ Each option has text + isCorrect (YES / NO)
+  // Each option has text + isCorrect
   const [options, setOptions] = useState([
     { text: "", isCorrect: false },
     { text: "", isCorrect: false }
@@ -24,19 +24,39 @@ const CreatePoll = () => {
     setOptions(copy);
   };
 
+  /* 🔥 CORE FIX
+     - YES → this option true, all others false
+     - NO  → this option false only
+  */
   const setCorrectValue = (index, value) => {
-    const copy = [...options];
-    copy[index].isCorrect = value;
-    setOptions(copy);
+    const updated = options.map((opt, i) => {
+      if (value === true) {
+        // Only ONE YES allowed
+        return { ...opt, isCorrect: i === index };
+      } else {
+        // NO just clears this option
+        return i === index ? { ...opt, isCorrect: false } : opt;
+      }
+    });
+
+    setOptions(updated);
   };
 
   const createPoll = () => {
     if (!question.trim()) return;
 
+    const correctOption = options.findIndex(opt => opt.isCorrect === true);
+
+    if (correctOption === -1) {
+      alert("Please mark one option as correct (Yes)");
+      return;
+    }
+
     socket.emit("create_poll", {
       question,
       options,
-      duration
+      duration,
+      correctOption
     });
 
     setQuestion("");
@@ -53,16 +73,9 @@ const CreatePoll = () => {
   return (
     <div className="create-poll-wrapper">
       <div className="create-poll-container">
-        {/* Heading */}
         <h2 className="create-title">Let’s Get Started</h2>
-        <p className="create-subtitle">
-          You’ll have the ability to create and manage polls, ask questions, and
-          monitor your students&apos; responses in real-time.
-        </p>
 
-        {/* Card */}
         <div className="create-poll-card">
-          {/* Question */}
           {/* Question */}
           <div className="field-group">
             <div className="question-header">
@@ -83,13 +96,9 @@ const CreatePoll = () => {
               className="question-input"
               placeholder="Type your question here"
               value={question}
-              maxLength={100}
               onChange={(e) => setQuestion(e.target.value)}
             />
-
-            <span className="char-count">{question.length}/100</span>
           </div>
-
 
           {/* Options */}
           <div className="options-section">
@@ -112,7 +121,7 @@ const CreatePoll = () => {
                   />
                 </div>
 
-                {/* ✅ YES / NO (WORKING) */}
+                {/* YES / NO */}
                 <div className="option-right">
                   <label>
                     <input
@@ -142,14 +151,9 @@ const CreatePoll = () => {
             </button>
           </div>
 
-          {/* Footer */}
-          <div className="duration-row">
-
-
-            <button className="ask-btn" onClick={createPoll}>
-              Ask Question
-            </button>
-          </div>
+          <button className="ask-btn" onClick={createPoll}>
+            Ask Question
+          </button>
         </div>
       </div>
     </div>
@@ -157,3 +161,8 @@ const CreatePoll = () => {
 };
 
 export default CreatePoll;
+
+
+
+
+

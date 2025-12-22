@@ -4,6 +4,22 @@
   margin-top: 60px;
   font-family: "Sora", sans-serif;
 }
+/* Neutral option (not wrong, not correct) */
+.neutral {
+  background: #f9fafb;
+  border-left: 4px solid #e5e7eb;
+}
+
+/* Correct option */
+.correct {
+  background: #f0fdf4;
+  border-left: 4px solid #22c55e;
+}
+
+/* Correct bar fill */
+.fill-correct {
+  background: linear-gradient(90deg, #22c55e, #4ade80);
+}
 
 .student-result-container {
   width: 100%;
