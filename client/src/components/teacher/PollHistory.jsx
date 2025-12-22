@@ -50,30 +50,62 @@ const PollHistory = ({ onClose }) => {
                       ? Math.round((votes / totalVotes) * 100)
                       : 0;
 
+                    const voters =
+                      poll.answerDetails?.find(d => d.optionIndex === idx)?.students || [];
+
+                    const isCorrect = poll.correctOption === idx;
+
                     return (
-                      <div key={idx} className="poll-option-row">
+                      <div
+                        key={idx}
+                        className={`poll-option-row ${isCorrect ? "option-correct" : "option-wrong"
+                          }`}
+                      >
+                        {/* Header */}
                         <div className="poll-option-header">
                           <span className="poll-option-text">
                             {typeof opt === "string" ? opt : opt.text}
                           </span>
+
                           <span className="poll-option-percent">
                             {percent}%
                           </span>
                         </div>
 
+                        {/* Bar */}
                         <div className="poll-option-bar">
                           <div
-                            className="poll-option-bar-fill"
+                            className={`poll-option-bar-fill ${isCorrect ? "bar-correct" : "bar-wrong"
+                              }`}
                             style={{ width: `${percent}%` }}
                           />
                         </div>
 
+                        {/* Meta */}
                         <span className="poll-option-votes">
                           {votes} vote{votes !== 1 ? "s" : ""}
                         </span>
+
+                        {/* 👇 STUDENT NAMES (NEW) */}
+                        <div className="vote-names">
+                          {voters.length === 0 ? (
+                            <span className="no-votes">No student selected this</span>
+                          ) : (
+                            voters.map((name, i) => (
+                              <span
+                                key={i}
+                                className={`vote-name-chip ${isCorrect ? "chip-correct" : "chip-wrong"
+                                  }`}
+                              >
+                                {name}
+                              </span>
+                            ))
+                          )}
+                        </div>
                       </div>
                     );
                   })
+
                 )}
               </div>
             );
