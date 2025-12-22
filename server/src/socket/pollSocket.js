@@ -1,5 +1,3 @@
-
-
 import { v4 as uuidv4 } from "uuid";
 import { pollState, students, pollHistory } from "../data/pollStore.js";
 import { startPollTimer, clearPollTimer } from "../utils/timer.js";
@@ -7,6 +5,26 @@ import { startPollTimer, clearPollTimer } from "../utils/timer.js";
 /* ---------- IN-MEMORY STORES ---------- */
 const studentQuestions = [];
 const chatMessages = [];
+
+/* =========================
+   🔥 HELPER: SEND MY ANSWER
+========================= */
+const emitMyAnswerToStudents = (io) => {
+  Object.entries(students).forEach(([socketId, student]) => {
+    const answer = pollState.answers?.[student.studentId];
+
+    io.to(socketId).emit(
+      "my_answer",
+      answer ? answer.optionIndex : null
+    );
+
+    console.log(
+      "🟢 emitMyAnswerToStudents →",
+      student.name,
+      answer ? answer.optionIndex : null
+    );
+  });
+};
 
 const registerPollSocket = (io) => {
   const emitStudentList = () => {
@@ -20,14 +38,14 @@ const registerPollSocket = (io) => {
   const endPoll = () => {
     pollState.isActive = false;
 
-    // ✅ COUNT RESULTS (UPDATED TO NEW STRUCTURE)
+    // ✅ COUNT RESULTS
     const results = pollState.options.map((_, index) =>
       Object.values(pollState.answers).filter(
         a => a.optionIndex === index
       ).length
     );
 
-    // ✅ NEW: BUILD ANSWER DETAILS (WHO VOTED WHAT)
+    // ✅ BUILD ANSWER DETAILS
     const answerDetails = pollState.options.map((_, optionIndex) => {
       const studentsForOption = Object.values(pollState.answers)
         .filter(a => a.optionIndex === optionIndex)
@@ -48,11 +66,22 @@ const registerPollSocket = (io) => {
       timestamp: new Date()
     });
 
+    const myAnswers = {};
+    Object.entries(students).forEach(([socketId, student]) => {
+      const ans = pollState.answers?.[student.studentId];
+      myAnswers[student.studentId] = ans ? ans.optionIndex : null;
+    });
+
     io.emit("poll_ended", {
       results,
       correctOption: pollState.correctOption,
-      answerDetails // ✅ NEW
+      answerDetails,
+      myAnswers // 🔥 ADDED
     });
+
+
+    // 🔥 SEND EACH STUDENT THEIR ANSWER
+    emitMyAnswerToStudents(io);
 
     pollState.question = null;
     pollState.options = [];
@@ -95,7 +124,6 @@ const registerPollSocket = (io) => {
       startPollTimer(pollState.duration, endPoll);
     });
 
-
     socket.on("kick_student", (studentSocketId) => {
       if (students[studentSocketId]) {
         io.to(studentSocketId).emit("kicked");
@@ -129,7 +157,6 @@ const registerPollSocket = (io) => {
       const student = students[socket.id];
       if (!student || student.hasAnswered) return;
 
-      // ✅ UPDATED: STORE NAME + OPTION
       pollState.answers[studentId] = {
         optionIndex,
         name: student.name
@@ -137,7 +164,10 @@ const registerPollSocket = (io) => {
 
       student.hasAnswered = true;
 
-      // ✅ UPDATED COUNT LOGIC
+      // 🔥 IMMEDIATE FEEDBACK
+      socket.emit("my_answer", optionIndex);
+      console.log("🟢 my_answer sent to", student.name, optionIndex);
+
       const counts = pollState.options.map((_, index) =>
         Object.values(pollState.answers).filter(
           a => a.optionIndex === index
@@ -146,7 +176,6 @@ const registerPollSocket = (io) => {
 
       io.emit("poll_update", counts);
 
-      // ✅ END POLL WHEN ALL STUDENTS ANSWER
       if (Object.keys(pollState.answers).length === Object.keys(students).length) {
         endPoll();
       }
@@ -174,3 +203,6 @@ const registerPollSocket = (io) => {
 };
 
 export default registerPollSocket;
+
+
+
